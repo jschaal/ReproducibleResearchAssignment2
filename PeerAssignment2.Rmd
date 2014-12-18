@@ -4,10 +4,59 @@ output: html_document
 ---
 ##Synopsis
 ##Data Processing
-```{r cache=TRUE}
-load("./data/dataSubset.RData")
+The data for this study is information maintained by the National XXX and XX about Storm event related damage, injuries and fatailities for the period of 1950 - 19XX.  
 
+###Reading in the Data
+The study data is in .csv formatted, compressed to save space.   We first read the entire file in natively.
+```{r cache=TRUE}
+# Process Data
+#data <- read.csv("./data/repdata_data_StormData.csv.bz2",as.is=TRUE)
+#save(data,file="./data/data.RData")
+```
+We then perform some basic examiniations of the data.  There are `r dim(data)[1]` rows in the dataset and `r dim(data)[2]` columns:
+```{r}
+dim(data)
+head(data[,1:10])
+```
+For this study, we are only interested in the damaage (property and crop) and casulaties (fatalities and injuries) caused by the various storm events.    This is represented by the columns: EVTYPE,BGN_DATE,FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP).   
+   
+We then extract only those columns of the data that we are interested in, keeping all observations in the file, and create an additional computational column that indicates the year of the record storm.
+```{r eval=FALSE}
+library(dplyr)
+library(lubridate)
+```
+```{r }
+#dataSubset <- tbl_df(data)
+#dataSubset <- select(dataSubset,REFNUM,EVTYPE,BGN_DATE,FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)
+#dataSubset$year <- year(mdy_hms(dataSubset$BGN_DATE))
+load("./data/dataSubset.RData")
+summary(dataSubset)
+```
+Finally, we cache the data to a local file for future processing.
+```{r}
+#save(dataSubset,file="./data/dataSubset.RData")
 ```
 
+
 ##Results
+```{r cache=TRUE}
+load("./data/dataSubset.RData")
+```
+```{r}
+rd2 <- dataSubset %>% 
+  group_by(year,EVTYPE) %>%
+  summarize(damage=sum(PROPDMG+CROPDMG),casualties=sum(FATALITIES+INJURIES))
+
+# Damage
+rd3 <- rd2 %>%
+  group_by(EVTYPE) %>%
+  summarize(damage=sum(damage)) %>%
+  arrange(desc(damage))
+
+t <- sum(rd3$damage)
+rd3$pct <- rd3$damage/t
+rd3$cpct <- cumsum(rd3$pct)
+rd4 <- filter(rd3,cpct<=.95)
+barplot(rd4$damage,names.arg = rd4$EVTYPE)
+```
 
