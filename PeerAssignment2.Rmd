@@ -1,0 +1,13 @@
+---
+title: "Reproducible Data Peer Review Assignment 2"
+output: html_document
+---
+##Synopsis
+##Data Processing
+```{r cache=TRUE}
+load("./data/dataSubset.RData")
+
+```
+
+##Results
+
