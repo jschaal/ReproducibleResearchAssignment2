@@ -1,52 +1,134 @@
 ---
-title: "Reproducible Data Peer Review Assignment 2"
+title: "Severe Weather Events With the Greatest Impact On Human Health and Economics from 1950 - 2011"
 output: html_document
 ---
 ##Synopsis
+In this report, we investigate which types of severe weather events have the greatest impact on Human Health (defined by the number of injuries and fatalities) and Economics (defined by the total of property and crop damage).  Our source of data is Severe Storm Data maintained by the National Weather Service, from 1950 - 2011.  Looking at the data, we conclude that Floods cause the most economic damage, represent 26% of total storm related damage.  We also conclude that XX cause the most human health impacts, representing XXX of total casualties.
 ##Data Processing
-The data for this study is information maintained by the National XXX and XX about Storm event related damage, injuries and fatailities for the period of 1950 - 19XX.  
+The data for this study is information collected  by the National Weather Service about damage and injuries associated with Storms and other weather related events in the United States, for the period of 1950 - 2011.  
+
+###Inflation Calculation and Help Functions
+The study data is in .csv formatted, compressed to save space.   
+
+We start by referencing the following website to determine the cumulative inflation from 1950 to 2011. [http://inflationdata.com/Inflation/Inflation_Calculators/Inflation_Rate_Calculator.asp](http://inflationdata.com/Inflation/Inflation_Calculators/Inflation_Rate_Calculator.asp).   
+Using the included calculator, we determine that $1.00 in 1950 is equivalent to $9.33 in 2011.  That implies an average inflation rate of:
+```{r}
+d2011 <- 9.33
+d1950 <- 1.00
+yrs <- 2011-1950
+inflation <- (d2011/d1950)^(1/yrs) - 1
+inflation
+```
+
+We then define a helper function that will be used to scale numeric damage values in the dataset, based on a separate magnitude indicator column, adjusted for inflation.
+```{r}
+# Return a muliplier based on the magnitude of a damage value, adjusted for inflation
+df <- function (e,eyear,inf) {
+  if (is.null(e) || is.na(e))  f <-1 
+  else if (e %in% c("K","k")) f <- 1e3 
+  else if (e %in% c("M","m")) f <- 1e6
+  else if (e %in% c("B","b")) f <- 1e9
+  else f <- 1
+  f * (1+inf)^(2011-eyear)
+}
+
+dfv <- Vectorize(df)
+```
 
 ###Reading in the Data
-The study data is in .csv formatted, compressed to save space.   We first read the entire file in natively.
-```{r cache=TRUE}
+With these two components defined, we then read the entire compressed .csv file in native format. 
+```{r }
 # Process Data
 #data <- read.csv("./data/repdata_data_StormData.csv.bz2",as.is=TRUE)
 #save(data,file="./data/data.RData")
+#load("./data/data.RData")
 ```
-We then perform some basic examiniations of the data.  There are `r dim(data)[1]` rows in the dataset and `r dim(data)[2]` columns:
+Performing some basic examinations of the data, we see there are `r dim(data)[1]` rows in the dataset and `r dim(data)[2]` columns:
 ```{r}
-dim(data)
-head(data[,1:10])
+#dim(data)
+#head(data[,1:10])
 ```
-For this study, we are only interested in the damaage (property and crop) and casulaties (fatalities and injuries) caused by the various storm events.    This is represented by the columns: EVTYPE,BGN_DATE,FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP).   
-   
-We then extract only those columns of the data that we are interested in, keeping all observations in the file, and create an additional computational column that indicates the year of the record storm.
-```{r eval=FALSE}
+
+###Extracting Relevant Data
+For this study, we are only interested in the damage (property and crop) and casualties (fatalities and injuries) caused by the various storm events.    This is represented by the columns: EVTYPE,BGN_DATE,FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP).   
+
+We then extract only those columns of the data that we are interested in, keeping all observations in the file, and create three additional computational columns that indicate   
+1.  A calculation of the total *damage*, defined as *property damage + crop damage*, with individual row values normalized based on the scale represented in *PROPDMGEXP* and *CROPDMGEXP*   
+2.  A calculation of the total *casualties*, defined as *fatalities + injuries*   
+3.  A column representing the year of a given storm. 
+```{r eval=TRUE}
 library(dplyr)
 library(lubridate)
 ```
 ```{r }
 #dataSubset <- tbl_df(data)
-#dataSubset <- select(dataSubset,REFNUM,EVTYPE,BGN_DATE,FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)
+#dataSubset <- select(dataSubset,REFNUM,EVTYPE,BGN_DATE,FATALITIES,INJURIES,
+#                     PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)
 #dataSubset$year <- year(mdy_hms(dataSubset$BGN_DATE))
-load("./data/dataSubset.RData")
-summary(dataSubset)
+#dataSubset$damage <- 
+#  (dataSubset$PROPDMG * dfv(dataSubset$PROPDMGEXP,dataSubset$year,inflation)) +
+#  + (dataSubset$CROPDMG * dfv(dataSubset$CROPDMGEXP,dataSubset$year,inflation))
+#dataSubset$casualties <- dataSubset$FATALITIES + dataSubset$INJURIES
+#save(dataSubset,file="./data/dataSubset.RData")
 ```
 Finally, we cache the data to a local file for future processing.
 ```{r}
 #save(dataSubset,file="./data/dataSubset.RData")
 ```
-
+###Subset Data Summary
+Looking at the subset data, we see
+```{r }
+summary(dataSubset)
+unique(dataSubset$year)
+head(dataSubset)
+```
 
 ##Results
-```{r cache=TRUE}
+```{r}
 load("./data/dataSubset.RData")
 ```
+The goal of this investigation is to determine which types of storms have the most impact on Human Health and the greatest economic consequences, across the United States, over the entire period of time covered by the data captured.
+###Common Grouping of the Data
+We begin our analysis by defining economic consquence as the damage (property damage + crop damage) caused by the storm.  Similarly, we define the Human Health impact as the casualties (fatalities + injuries) caused by the storm.    
+
+As a starting point to our investigations, we calculate the total damage and total casualties caused by each type of Storm Event (EVTYPE).
 ```{r}
 rd2 <- dataSubset %>% 
-  group_by(year,EVTYPE) %>%
-  summarize(damage=sum(PROPDMG+CROPDMG),casualties=sum(FATALITIES+INJURIES))
+  group_by(EVTYPE) %>%
+  summarize(damage=sum(damage),casualties=sum(casualties))
+```
+###Question One: Across the United States, which types of events are most harmful with respect to population health?   
+To investigate our first question, we start by sorting the storm data in descending order of storm damage then calculate the percent of total and cumulative percent of total represented by the various storm event types.
+```{r}
+# Damage
+rd3 <- rd2 %>%
+  arrange(desc(casualties))
 
+tc <- sum(rd3$casualties)
+rd3$pct <- rd3$casualties/tc * 100
+rd3$cpct <- cumsum(rd3$pct) 
+rd4 <- filter(rd3,cpct<=95) 
+```
+Looking at the results, we see that **`r rd4[[1,"EVTYPE"]]`** type storms caused the greatest number of causalties across the US for the years included in the dataset, representing **`r round(rd4[[1,"pct"]],2)` percent** of the total casualties.   The table and chart below represents the storm types that represent approximately 95% of the total casualties, sorted in descending order of total casualties over the years contained in the data:
+```{r}
+rd4
+```
+
+
+```{r fig.height=6}
+library(RColorBrewer)
+cols <- brewer.pal(3,"Spectral")
+pal <- colorRampPalette(cols)
+par(ps = 9, cex = 1, cex.main = 1, mar = c(12,4,4,2))
+barplot(rd4$casualties,names.arg = rd4$EVTYPE,las=3,col=pal(nrow(rd4)),
+        main="Storms Types Causing Approximately 95% of Historical Damage",
+        ylab="Casualties")
+```
+
+
+###Question Two: Across the United States, which types of events have the greatest economic consequences?
+To investigate our second question, we start by sorting the storm data in descending order of storm damage then calculate the percent of total and cumulative percent of total represented by the various storm event types.
+```{r}
 # Damage
 rd3 <- rd2 %>%
   group_by(EVTYPE) %>%
@@ -54,9 +136,23 @@ rd3 <- rd2 %>%
   arrange(desc(damage))
 
 t <- sum(rd3$damage)
-rd3$pct <- rd3$damage/t
-rd3$cpct <- cumsum(rd3$pct)
-rd4 <- filter(rd3,cpct<=.95)
-barplot(rd4$damage,names.arg = rd4$EVTYPE)
+rd3$pct <- rd3$damage/t * 100
+rd3$cpct <- cumsum(rd3$pct) 
+rd4 <- filter(rd3,cpct<=95) 
+```
+Looking at the results, we see that **`r rd4[[1,"EVTYPE"]]`** type storms caused the greatest damage across the US for the years included in the dataset, representing **`r round(rd4[[1,"pct"]],2)` percent** of the total Storm Damage.   The table and chart below represents the storm types that represent 95% of the total Storm damage, sorted in descending order of total damage over the years contained in the data:
+```{r}
+rd4
+```
+
+
+```{r fig.height=6}
+library(RColorBrewer)
+cols <- brewer.pal(3,"Spectral")
+pal <- colorRampPalette(cols)
+par(ps = 9, cex = 1, cex.main = 1, mar = c(12,4,4,2))
+barplot(rd4$damage / 1e6,names.arg = rd4$EVTYPE,las=3,col=pal(nrow(rd4)),
+        main="Storms Types Causing Approximately 95% of Historical Damage",
+        ylab="Damage $ in Millions")
 ```
 
