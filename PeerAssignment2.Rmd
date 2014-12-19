@@ -3,15 +3,16 @@ title: "Severe Weather Events With the Greatest Impact On Human Health and Econo
 output: html_document
 ---
 ##Synopsis
-In this report, we investigate which types of severe weather events have the greatest impact on Human Health (defined by the number of injuries and fatalities) and Economics (defined by the total of property and crop damage).  Our source of data is Severe Storm Data maintained by the National Weather Service, from 1950 - 2011.  Looking at the data, we conclude that Floods cause the most economic damage, represent 26% of total storm related damage.  We also conclude that XX cause the most human health impacts, representing XXX of total casualties.
-##Data Processing
-The data for this study is information collected  by the National Weather Service about damage and injuries associated with Storms and other weather related events in the United States, for the period of 1950 - 2011.  
+In this report, we investigate which types of severe weather events have the greatest impact on Human Health (defined by the number of injuries and fatalities) and Economics (defined by the total of property and crop damage).  Our source of data is Severe Storm Data maintained by the National Weather Service, from 1950 - 2011.  Our analysis concludes that **Tornados** cause the majority of human health impacts, accounting for approximately **62.30%** of total casualties.   We also conclude that **Floods** cause the most economic damage, represent approximately **26.38%** of total storm related damage.   
 
-###Inflation Calculation and Help Functions
-The study data is in .csv formatted, compressed to save space.   
+##Data Processing
+The data for this study is information collected  by the National Weather Service about damage and injuries associated with Storms and other weather related events in the United States, for the period of 1950 - 2011.  The study data is captured in .csv formatted, compressed to save space.   
+
+
+###Inflation Calculations and Helper Functions
 
 We start by referencing the following website to determine the cumulative inflation from 1950 to 2011. [http://inflationdata.com/Inflation/Inflation_Calculators/Inflation_Rate_Calculator.asp](http://inflationdata.com/Inflation/Inflation_Calculators/Inflation_Rate_Calculator.asp).   
-Using the included calculator, we determine that $1.00 in 1950 is equivalent to $9.33 in 2011.  That implies an average inflation rate of:
+Using the included calculator, we determine that **$1.00** in 1950 is equivalent to **$9.33** in 2011.  That implies an average inflation rate of:
 ```{r}
 d2011 <- 9.33
 d1950 <- 1.00
@@ -30,7 +31,7 @@ df <- function (e,eyear,inf) {
   else if (e %in% c("B","b")) f <- 1e9
   else f <- 1
   f * (1+inf)^(2011-eyear)
-}
+  }
 
 dfv <- Vectorize(df)
 ```
@@ -87,9 +88,10 @@ head(dataSubset)
 ```{r}
 load("./data/dataSubset.RData")
 ```
-The goal of this investigation is to determine which types of storms have the most impact on Human Health and the greatest economic consequences, across the United States, over the entire period of time covered by the data captured.
+The goal of this investigation is to determine which types of storms have the most impact on Human Health and the greatest economic consequences, across the United States, over the entire period of time covered by the data captured.   
+
 ###Common Grouping of the Data
-We begin our analysis by defining economic consquence as the damage (property damage + crop damage) caused by the storm.  Similarly, we define the Human Health impact as the casualties (fatalities + injuries) caused by the storm.    
+We begin our analysis by defining economic consequence as the damage (property damage + crop damage) caused by the storm.  Similarly, we define the Human Health impact as the casualties (fatalities + injuries) caused by the storm.    
 
 As a starting point to our investigations, we calculate the total damage and total casualties caused by each type of Storm Event (EVTYPE).
 ```{r}
@@ -98,9 +100,8 @@ rd2 <- dataSubset %>%
   summarize(damage=sum(damage),casualties=sum(casualties))
 ```
 ###Question One: Across the United States, which types of events are most harmful with respect to population health?   
-To investigate our first question, we start by sorting the storm data in descending order of storm damage then calculate the percent of total and cumulative percent of total represented by the various storm event types.
+To investigate our first question, we start by sorting the storm data in descending order of storm casualties then calculate the percent of total and cumulative percent of total represented by the various storm event types.
 ```{r}
-# Damage
 rd3 <- rd2 %>%
   arrange(desc(casualties))
 
@@ -109,7 +110,7 @@ rd3$pct <- rd3$casualties/tc * 100
 rd3$cpct <- cumsum(rd3$pct) 
 rd4 <- filter(rd3,cpct<=95) 
 ```
-Looking at the results, we see that **`r rd4[[1,"EVTYPE"]]`** type storms caused the greatest number of causalties across the US for the years included in the dataset, representing **`r round(rd4[[1,"pct"]],2)` percent** of the total casualties.   The table and chart below represents the storm types that represent approximately 95% of the total casualties, sorted in descending order of total casualties over the years contained in the data:
+Looking at the results, we see that **`r rd4[[1,"EVTYPE"]]`** type storms caused the greatest number of casualties across the US for the years included in the dataset, representing **`r round(rd4[[1,"pct"]],2)` percent** of the total casualties.   The table and chart below show  the storm types that represent approximately **95%** of the total casualties, sorted in descending order of total casualties over the years contained in the data:
 ```{r}
 rd4
 ```
@@ -121,28 +122,26 @@ cols <- brewer.pal(3,"Spectral")
 pal <- colorRampPalette(cols)
 par(ps = 9, cex = 1, cex.main = 1, mar = c(12,4,4,2))
 barplot(rd4$casualties,names.arg = rd4$EVTYPE,las=3,col=pal(nrow(rd4)),
-        main="Storms Types Causing Approximately 95% of Historical Damage",
         ylab="Casualties")
-```
+title(main="U.S. Storms Types Causing Approximately 95% of Historical Casualties\n1950-2011", cex.main=1.5)
 
+```
 
 ###Question Two: Across the United States, which types of events have the greatest economic consequences?
 To investigate our second question, we start by sorting the storm data in descending order of storm damage then calculate the percent of total and cumulative percent of total represented by the various storm event types.
 ```{r}
 # Damage
-rd3 <- rd2 %>%
-  group_by(EVTYPE) %>%
-  summarize(damage=sum(damage)) %>%
+rd5 <- rd2 %>%
   arrange(desc(damage))
 
-t <- sum(rd3$damage)
-rd3$pct <- rd3$damage/t * 100
-rd3$cpct <- cumsum(rd3$pct) 
-rd4 <- filter(rd3,cpct<=95) 
+td <- sum(rd5$damage)
+rd5$pct <- rd5$damage/td * 100
+rd5$cpct <- cumsum(rd5$pct) 
+rd6 <- filter(rd5,cpct<=95) 
 ```
-Looking at the results, we see that **`r rd4[[1,"EVTYPE"]]`** type storms caused the greatest damage across the US for the years included in the dataset, representing **`r round(rd4[[1,"pct"]],2)` percent** of the total Storm Damage.   The table and chart below represents the storm types that represent 95% of the total Storm damage, sorted in descending order of total damage over the years contained in the data:
+Looking at the results, we see that **`r rd6[[1,"EVTYPE"]]`** type storms caused the greatest damage across the US for the years included in the dataset, representing **`r round(rd6[[1,"pct"]],2)` percent** of the total Storm Damage.   The table and chart below show  the storm types that represent **95%** of the total Storm damage, sorted in descending order of total damage over the years contained in the data:
 ```{r}
-rd4
+rd6
 ```
 
 
@@ -151,8 +150,9 @@ library(RColorBrewer)
 cols <- brewer.pal(3,"Spectral")
 pal <- colorRampPalette(cols)
 par(ps = 9, cex = 1, cex.main = 1, mar = c(12,4,4,2))
-barplot(rd4$damage / 1e6,names.arg = rd4$EVTYPE,las=3,col=pal(nrow(rd4)),
-        main="Storms Types Causing Approximately 95% of Historical Damage",
+barplot(rd6$damage / 1e6,names.arg = rd6$EVTYPE,las=3,col=pal(nrow(rd4)),
         ylab="Damage $ in Millions")
+title(main="U.S. Storms Types Causing Approximately 95% of Historical Damage\n1950-2011",
+      cex.main=1.5)
 ```
 
