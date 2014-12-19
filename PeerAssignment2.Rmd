@@ -38,16 +38,13 @@ dfv <- Vectorize(df)
 
 ###Reading in the Data
 With these two components defined, we then read the entire compressed .csv file in native format. 
-```{r }
-# Process Data
-#data <- read.csv("./data/repdata_data_StormData.csv.bz2",as.is=TRUE)
-#save(data,file="./data/data.RData")
-#load("./data/data.RData")
+```{r cache=TRUE}
+data <- read.csv("./data/repdata_data_StormData.csv.bz2",as.is=TRUE)
 ```
 Performing some basic examinations of the data, we see there are `r dim(data)[1]` rows in the dataset and `r dim(data)[2]` columns:
 ```{r}
-#dim(data)
-#head(data[,1:10])
+dim(data)
+head(data[,1:10])
 ```
 
 ###Extracting Relevant Data
@@ -57,24 +54,19 @@ We then extract only those columns of the data that we are interested in, keepin
 1.  A calculation of the total *damage*, defined as *property damage + crop damage*, with individual row values normalized based on the scale represented in *PROPDMGEXP* and *CROPDMGEXP*   
 2.  A calculation of the total *casualties*, defined as *fatalities + injuries*   
 3.  A column representing the year of a given storm. 
-```{r eval=TRUE}
+```{r eval=FALSE}
 library(dplyr)
 library(lubridate)
 ```
-```{r }
-#dataSubset <- tbl_df(data)
-#dataSubset <- select(dataSubset,REFNUM,EVTYPE,BGN_DATE,FATALITIES,INJURIES,
-#                     PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)
-#dataSubset$year <- year(mdy_hms(dataSubset$BGN_DATE))
-#dataSubset$damage <- 
-#  (dataSubset$PROPDMG * dfv(dataSubset$PROPDMGEXP,dataSubset$year,inflation)) +
-#  + (dataSubset$CROPDMG * dfv(dataSubset$CROPDMGEXP,dataSubset$year,inflation))
-#dataSubset$casualties <- dataSubset$FATALITIES + dataSubset$INJURIES
-#save(dataSubset,file="./data/dataSubset.RData")
-```
-Finally, we cache the data to a local file for future processing.
-```{r}
-#save(dataSubset,file="./data/dataSubset.RData")
+```{r cache=TRUE }
+dataSubset <- tbl_df(data)
+dataSubset <- select(dataSubset,REFNUM,EVTYPE,BGN_DATE,FATALITIES,INJURIES,
+                     PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)
+dataSubset$year <- year(mdy_hms(dataSubset$BGN_DATE))
+dataSubset$damage <- 
+  (dataSubset$PROPDMG * dfv(dataSubset$PROPDMGEXP,dataSubset$year,inflation)) +
+  + (dataSubset$CROPDMG * dfv(dataSubset$CROPDMGEXP,dataSubset$year,inflation))
+dataSubset$casualties <- dataSubset$FATALITIES + dataSubset$INJURIES
 ```
 ###Subset Data Summary
 Looking at the subset data, we see
@@ -85,9 +77,6 @@ head(dataSubset)
 ```
 
 ##Results
-```{r}
-load("./data/dataSubset.RData")
-```
 The goal of this investigation is to determine which types of storms have the most impact on Human Health and the greatest economic consequences, across the United States, over the entire period of time covered by the data captured.   
 
 ###Common Grouping of the Data
